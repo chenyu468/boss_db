@@ -208,6 +208,7 @@ handle_call({table_exists, TableName}, _From, State) ->
 handle_call({execute, Commands}, _From, State) ->
     Adapter = State#state.adapter,
     Conn = State#state.write_connection,
+    error_logger:info_report([boss_db_controller_handle_call_execute_1,Commands]),
     {reply, Adapter:execute(Conn, Commands), State};
 
 handle_call({execute, Commands, Params}, _From, State) ->

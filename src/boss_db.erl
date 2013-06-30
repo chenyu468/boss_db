@@ -1,6 +1,7 @@
 %% @doc Chicago Boss database abstraction
 
 -module(boss_db).
+-compile([{parse_transform, lager_transform}]).
 
 -export([start/1, stop/0]).
 
@@ -105,12 +106,19 @@ migrate({Tag, Fun}, Direction) ->
 %% by a dot-separated path (e.g. "employee-42.manager.name").
 find("") -> undefined;
 find(Key) when is_list(Key) ->
-    [IdToken|Rest] = string:tokens(Key, "."),
+    %% [IdToken|Rest] = string:tokens(Key, "."),
+    %% case db_call({find, IdToken}) of
+    %%     undefined -> undefined;
+    %%     {error, Reason} -> {error, Reason};
+    %%     BossRecord -> BossRecord:get(string:join(Rest, "."))
+    %% end;
+    IdToken = Key,
     case db_call({find, IdToken}) of
         undefined -> undefined;
         {error, Reason} -> {error, Reason};
-        BossRecord -> BossRecord:get(string:join(Rest, "."))
+        BossRecord -> BossRecord
     end;
+
 find(_) ->
     {error, invalid_id}.
 
@@ -268,16 +276,17 @@ save_record(Record) ->
         ok ->
             RecordId = Record:id(),
             {IsNew, OldRecord} = if
-                RecordId =:= 'id' ->
-                    {true, Record};
-                true ->
-                    case find(RecordId) of
-                        {error, _Reason} -> {true, Record};
-                        undefined -> {true, Record};
-                        FoundOldRecord -> {false, FoundOldRecord}
-                    end
-            end,
-            % Action dependent valitation
+                                     RecordId =:= 'id' ->
+                                         {true, Record};
+                                     true ->
+                                         %% lager:info("boss_db_save_record_1:~p,~n,~p",[Record,RecordId]),
+                                         case find(RecordId) of
+                                             {error, _Reason} -> {true, Record};
+                                             undefined -> {true, Record};
+                                             FoundOldRecord -> {false, FoundOldRecord}
+                                         end
+                                 end,
+                                                % Action dependent valitation
             case validate_record(Record, IsNew) of
                 ok ->
                     HookResult = case boss_record_lib:run_before_hooks(Record, IsNew) of

@@ -1,4 +1,5 @@
 -module(boss_sql_lib).
+-compile([{parse_transform, lager_transform}]).
 -export([keytype/1,
         infer_type_from_id/1,
         convert_id_condition_to_use_table_ids/1,
@@ -17,9 +18,11 @@ keytype(Record) when is_tuple(Record) andalso is_atom(element(1, Record)) ->
     proplists:get_value(id, Record:attribute_types(), ?DEFAULT_KEYTYPE).
 
 infer_type_from_id(Id) when is_list(Id) ->
+    %% lager:info("boss_sql_lib_infer_type_from_id:~p",[Id]),
     [Type, TableId] = re:split(Id, "-", [{return, list}, {parts, 2}]),
     TypeAtom = list_to_atom(Type),
     IdColumn = proplists:get_value(id, boss_record_lib:database_columns(TypeAtom)),
+    %%error_logger:info_report([boss_sql_lib_infer_type_from_id_1,Type,keytype(Type)]),
     IdValue = case keytype(Type) of
                 uuid -> TableId;
                 serial -> list_to_integer(TableId)
