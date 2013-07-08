@@ -105,6 +105,20 @@ migrate({Tag, Fun}, Direction) ->
 %% by a dot-separated path (e.g. "employee-42.manager.name").
 find("") -> undefined;
 find(Key) when is_list(Key) ->
+    %% [IdToken|Rest] = string:tokens(Key, "."),
+    %% case db_call({find, IdToken}) of
+    %%     undefined -> undefined;
+    %%     {error, Reason} -> {error, Reason};
+    %%     BossRecord -> BossRecord:get(string:join(Rest, "."))
+    %% end;
+    IdToken = Key,
+     case db_call({find, IdToken}) of
+         undefined -> undefined;
+         {error, Reason} -> {error, Reason};
+        BossRecord -> BossRecord
+     end;
+
+find(Key) when is_list(Key) ->
     [IdToken|Rest] = string:tokens(Key, "."),
     case db_call({find, IdToken}) of
         undefined -> undefined;
