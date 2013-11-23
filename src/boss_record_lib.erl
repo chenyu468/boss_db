@@ -1,4 +1,5 @@
 -module(boss_record_lib).
+-compile([{parse_transform, lager_transform}]).
 -export([run_before_hooks/2, 
         run_after_hooks/3,
         run_before_delete_hooks/1,

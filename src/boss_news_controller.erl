@@ -1,4 +1,5 @@
 -module(boss_news_controller).
+-compile([{parse_transform, lager_transform}]).
 
 -behaviour(gen_server).
 
@@ -192,6 +193,8 @@ handle_call({updated, Id, OldAttrs, NewAttrs}, _From, State0) ->
         _ -> []
     end,
     AllWatchers = IdWatchers ++ WildcardWatchers,
+    %% A = 'jacob_001.book':module_info(),
+    %% lager:info("boss_news_controller_handle_call_update_1:~p",[A]),
     OldRecord = activate_record(Id, OldAttrs),
     NewRecord = activate_record(Id, NewAttrs),
     OldAttributes = OldRecord:attributes(),

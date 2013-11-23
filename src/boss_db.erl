@@ -1,6 +1,7 @@
 %% @doc Chicago Boss database abstraction
 
 -module(boss_db).
+-compile([{parse_transform, lager_transform}]).
 
 -export([start/1, stop/0]).
 
@@ -282,16 +283,16 @@ save_record(Record) ->
         ok ->
             RecordId = Record:id(),
             {IsNew, OldRecord} = if
-                RecordId =:= 'id' ->
-                    {true, Record};
-                true ->
-                    case find(RecordId) of
-                        {error, _Reason} -> {true, Record};
-                        undefined -> {true, Record};
-                        FoundOldRecord -> {false, FoundOldRecord}
-                    end
-            end,
-            % Action dependent valitation
+                                     RecordId =:= 'id' ->
+                                         {true, Record};
+                                     true ->
+                                         case find(RecordId) of
+                                             {error, _Reason} -> {true, Record};
+                                             undefined -> {true, Record};
+                                             FoundOldRecord -> {false, FoundOldRecord}
+                                         end
+                                 end,
+                                                % Action dependent valitation
             case validate_record(Record, IsNew) of
                 ok ->
                     HookResult = case boss_record_lib:run_before_hooks(Record, IsNew) of
@@ -303,6 +304,8 @@ save_record(Record) ->
                         {ok, PossiblyModifiedRecord} ->
                             case db_call({save_record, PossiblyModifiedRecord}) of
                                 {ok, SavedRecord} ->
+                                    %% A = 'jacob_001.book':module_info(),
+                                    %% lager:info("boss_news_controller_handle_call_update_1:~p",[A]),
                                     boss_record_lib:run_after_hooks(OldRecord, SavedRecord, IsNew),
                                     {ok, SavedRecord};
                                 Err -> Err
@@ -379,6 +382,7 @@ validate_record_types(Record) ->
                   id -> Acc;
                   _  ->
                     Data = Record:Attr(),
+                        lager:info("boss_db_validate_record_types_1:~p,~p",[Data,Type]),
                     GreatSuccess = case {Data, Type} of
                         {undefined, _} ->
                             true;

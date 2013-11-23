@@ -1,4 +1,5 @@
 -module(boss_db_adapter_pgsql).
+-compile([{parse_transform, lager_transform}]).
 -behaviour(boss_db_adapter).
 -export([init/1, terminate/1, start/1, stop/0, find/2, find/7]).
 -export([count/3, counter/2, incr/3, delete/2, save_record/2]).
@@ -28,6 +29,7 @@ terminate(Conn) ->
 find(Conn, Id) when is_list(Id) ->
     {Type, TableName, IdColumn, TableId} = boss_sql_lib:infer_type_from_id(Id),
     Res = pgsql:equery(Conn, ["SELECT * FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
+    lager:info("boss_db_adapter_pgsql_find_2:~p,~n~p",[TableId,Res]),
     case Res of
         {ok, _Columns, []} ->
             undefined;
@@ -47,6 +49,8 @@ find(Conn, Type, Conditions, Max, Skip, Sort, SortOrder) when is_atom(Type), is_
         true ->
             Query = build_select_query(Type, Conditions, Max, Skip, Sort, SortOrder),
             Res = pgsql:equery(Conn, Query, []),
+            %% lager:info("boss_db_adapter_pgsql_find_7:~p,~n~p",
+            %%            [Query,Res]),
             case Res of
                 {ok, Columns, ResultRows} ->
                     FilteredRows = case {Max, Skip} of
@@ -108,6 +112,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
             Record1 = maybe_populate_id_value(Record),
             Type = element(1, Record1),
             Query = build_insert_query(Record1),
+            %% lager:info("boss_db_adapter_pgsql_1:~p",[Query]),
             Res = pgsql:equery(Conn, Query, []),
             case Res of
                 {ok, _, _, [{Id}]} ->
@@ -116,6 +121,7 @@ save_record(Conn, Record) when is_tuple(Record) ->
             end;
         Defined when is_list(Defined) ->
             Query = build_update_query(Record),
+            %% lager:info("boss_db_adapter_pgsql_2:~p",[Query]),
             Res = pgsql:equery(Conn, Query, []),
             case Res of
                 {ok, _} -> {ok, Record};
