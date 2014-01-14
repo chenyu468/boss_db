@@ -29,7 +29,7 @@ terminate(Conn) ->
 find(Conn, Id) when is_list(Id) ->
     {Type, TableName, IdColumn, TableId} = boss_sql_lib:infer_type_from_id(Id),
     Res = pgsql:equery(Conn, ["SELECT * FROM ", TableName, " WHERE ", IdColumn, " = $1"], [TableId]),
-    lager:info("boss_db_adapter_pgsql_find_2:~p,~n~p",[TableId,Res]),
+    %% lager:info("boss_db_adapter_pgsql_find_2:~p,~n~p",[TableId,Res]),
     case Res of
         {ok, _Columns, []} ->
             undefined;
