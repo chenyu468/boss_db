@@ -11,7 +11,8 @@ start_link(Pool_key) ->
     start_link(Pool_key,[]).
 
 start_link(Key,StartArgs) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, [Key,StartArgs]).
+    Name = love_misc:to_atom("db_sup_2" ++ love_misc:to_list(Key)),
+    supervisor:start_link({local,Name}, ?MODULE, [Key,StartArgs]).
 
 init([Key,StartArgs]) ->
     %% Args = [{name, {local, boss_db_pool}},
