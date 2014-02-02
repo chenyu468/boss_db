@@ -272,11 +272,17 @@ execute(Pool_key,Commands, Params) ->
 transaction(Pool_key,TransactionFun) ->
     Worker = poolboy:checkout(Pool_key),
     State = gen_server:call(Worker, state, ?DEFAULT_TIMEOUT),
+    lager:info("boss_db_2_transaction_1"),
     put(boss_db_transaction_info, State),
+    lager:info("boss_db_2_transaction_2"),
     {reply, Reply, _} = boss_db_controller:handle_call({transaction, TransactionFun}, self(), State),
+    lager:info("boss_db_2_transaction_3"),
     put(boss_db_transaction_info, undefined),
+    lager:info("boss_db_2_transaction_4"),
     poolboy:checkin(Pool_key, Worker),
+    lager:info("boss_db_2_transaction_5"),
     Reply.
+    %% db_call(Pool_key,{transaction,TransactionFun}).
 
 %% @spec save_record( BossRecord ) -> {ok, SavedBossRecord} | {error, [ErrorMessages]}
 %% @doc Save (that is, create or update) the given BossRecord in the database.

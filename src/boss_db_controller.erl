@@ -1,4 +1,5 @@
 -module(boss_db_controller).
+-compile([{parse_transform, lager_transform}]).
 
 -behaviour(gen_server).
 
@@ -30,6 +31,8 @@ start_link(Args) ->
     gen_server:start_link(?MODULE, Args, []).
 
 connections_for_adapter(Adapter, Options) ->
+    lager:info("boss_db_controller_connections_for_adapters_1:~p~n~p",
+               [Adapter,Options]),
     case Adapter:init(Options) of
         {ok, {readwrite, Read, Write}} ->
             {ok, {Read, Write}};
@@ -40,6 +43,7 @@ connections_for_adapter(Adapter, Options) ->
     end.
 
 setup_reconnect(State) ->
+    lager:info("boss_db_controller_setup_reconnect_1:~p,~p",[State,State#state.connection_delay]),
     Delay = case State#state.connection_delay of
 		D when D < ?MAXDELAY ->
 		    D;
@@ -47,9 +51,11 @@ setup_reconnect(State) ->
 		    ?MAXDELAY
 	    end,
     Pid = self(),
+    lager:info("boss_db_controller_setup_reconnect_1:~p,~p",[Delay,Pid]),
     timer:apply_after(Delay, boss_db_controller, try_connection, [Pid, State#state.options]).
 
 try_connection(Pid, Options) ->
+    lager:info("boss_db_controller_try_connection_1:~p,~p",[Pid,Options]),
     gen_server:cast(Pid, {try_connect, Options}).
 
 terminate_connections(Adapter, RC, RC) ->
@@ -224,6 +230,7 @@ handle_call(state, _From, State) ->
     {reply, State, State}.
 
 handle_cast({try_connect, Options}, State) when State#state.connection_state /= connected ->
+    lager:info("boss_db_controller_handle_cast_try_connect_1:~p",[Options]),
     Adapter = State#state.adapter,
     CacheEnable = State#state.cache_enable,
     CacheTTL = State#state.cache_ttl,
@@ -251,19 +258,24 @@ handle_cast({try_connect, Options}, State) when State#state.connection_state /= 
 					    {[{ShardAdapter, ShardRead, ShardWrite}|ShardAcc], NewDict}
 				    end
 			    end, {[], dict:new()}, proplists:get_value(shards, Options, [])),
+            lager:info("boss_db_controller_handle_cast_try_cast_2:~p,~n~p",[ReadConn,WriteConn]),
 	    {noreply, #state{connection_state = connected, connection_delay = 1,
 			     adapter = Adapter, read_connection = ReadConn, write_connection = WriteConn,
 			     shards = lists:reverse(Shards), model_dict = ModelDict, options = Options,
 			     cache_enable = CacheEnable, cache_ttl = CacheTTL, cache_prefix = db }};
 	_Failure ->
+            lager:info("boss_db_controller_handle_cast_try_cast_3"),
 	    {ok, Tref} = setup_reconnect(State),
+            lager:info("boss_db_controller_handle_cast_try_cast_3_1"),
 	    {noreply, #state{connection_state = disconnected, connection_delay = State#state.connection_delay * 2,
 			     connection_retry_timer = Tref,
 			     adapter = Adapter, read_connection = undefined, write_connection = undefined,
 			     options = Options, cache_enable = CacheEnable, cache_ttl = CacheTTL, cache_prefix = db }}
     catch
 	_Error ->
+            lager:info("boss_db_controller_handle_cast_try_cast_4"),
 	    {ok, Tref} = setup_reconnect(State),
+            lager:info("boss_db_controller_handle_cast_try_cast_4_1"),
 	    {noreply, #state{connection_state = disconnected, connection_delay = State#state.connection_delay * 2,
 			     connection_retry_timer = Tref,
 			     adapter = Adapter, read_connection = undefined, write_connection = undefined,
@@ -288,17 +300,22 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 handle_info(stop, State) ->
+    lager:info("boss_db_controller_handle_info_stop_1:~p",[State]),
     {stop, shutdown, State};
 
-handle_info({'EXIT', _From, _Reason}, State) when State#state.connection_state == connected ->
+handle_info({'EXIT', From, Reason}, State) when State#state.connection_state == connected ->
+    lager:info("boss_db_controller_handle_info_exit_1:~p,~p,~p",[From,Reason,State]),
     {ok, Tref} = setup_reconnect(State),
+     lager:info("boss_db_controller_handle_info_exit_1_1"),
     {noreply, State#state { connection_state = disconnected, connection_delay = State#state.connection_delay * 2,
 			    connection_retry_timer = Tref } };
 
-handle_info({'EXIT', _From, _Reason}, State) ->
+handle_info({'EXIT', From, Reason}, State) ->
+    lager:info("boss_db_controller_handle_info_exit_2:~p,~p,~p",[From,Reason,State]),
     {noreply, State#state { connection_state = disconnected } };
 
-handle_info(_Info, State) ->
+handle_info(Info, State) ->
+    lager:info("boss_db_controller_handle_info_3:~p,~p",[Info,State]),
     {noreply, State}.
 
 db_for_counter(_Counter, State) ->

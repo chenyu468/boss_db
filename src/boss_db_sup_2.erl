@@ -19,5 +19,5 @@ init([Key,StartArgs]) ->
     Args = [{name, {local, Key}},
         {worker_module, boss_db_controller},
         {size, 5}, {max_overflow, 10}|StartArgs],
-    PoolSpec = {db_controller, {poolboy, start_link, [Args]}, permanent, 2000, worker, [poolboy]},
+    PoolSpec = {db_controller, {poolboy, start_link, [Args,StartArgs]}, permanent, 2000, worker, [poolboy]},
     {ok, {{one_for_one, 10, 10}, [PoolSpec]}}.

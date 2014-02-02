@@ -147,6 +147,7 @@ execute(Conn, Commands, Params) ->
 
 transaction(Conn, TransactionFun) ->
     case pgsql:with_transaction(Conn, fun(_C) -> TransactionFun() end) of
+        {abort,client_timeout} -> {aborted, client_timeout};
         {rollback, Reason} -> {aborted, Reason};
         Other -> {atomic, Other}
     end.
