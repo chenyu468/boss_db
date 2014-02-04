@@ -8,6 +8,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -define(MAXDELAY, 10000).
+-define(CHECK_STATUS_INTERVAL,5*60*1000).
 
 -record(state, {
 	  connection_state,
@@ -71,6 +72,7 @@ init(Options) ->
     CacheTTL = proplists:get_value(cache_exp_time, Options, 60),
     process_flag(trap_exit, true),
     try_connection(self(), Options),
+    timer:send_after(30000,check_status),
     {ok, #state{connection_state = connecting,
 		connection_delay = 1,
 		options = Options,
@@ -303,10 +305,20 @@ handle_info(stop, State) ->
     lager:info("boss_db_controller_handle_info_stop_1:~p",[State]),
     {stop, shutdown, State};
 
+handle_info(check_status,State) when State#state.connection_state == connected ->
+    Adapter = State#state.adapter,
+    Conn = State#state.write_connection,
+    Commands = "select 1",
+    Params = [],
+    Result = Adapter:execute(Conn, Commands, Params),
+    lager:info("boss_db_controller_handle_info_check_status_1:~p",[Result]),
+    timer:send_after(?CHECK_STATUS_INTERVAL,check_status),
+    {noreply, State};
+
 handle_info({'EXIT', From, Reason}, State) when State#state.connection_state == connected ->
     lager:info("boss_db_controller_handle_info_exit_1:~p,~p,~p",[From,Reason,State]),
     {ok, Tref} = setup_reconnect(State),
-     lager:info("boss_db_controller_handle_info_exit_1_1"),
+    lager:info("boss_db_controller_handle_info_exit_1_1"),
     {noreply, State#state { connection_state = disconnected, connection_delay = State#state.connection_delay * 2,
 			    connection_retry_timer = Tref } };
 
