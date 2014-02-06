@@ -310,8 +310,8 @@ handle_info(check_status,State) when State#state.connection_state == connected -
     Conn = State#state.write_connection,
     Commands = "select 1",
     Params = [],
-    Result = Adapter:execute(Conn, Commands, Params),
-    lager:info("boss_db_controller_handle_info_check_status_1:~p",[Result]),
+    _Result = Adapter:execute(Conn, Commands, Params),
+    %% lager:info("boss_db_controller_handle_info_check_status_1:~p",[Result]),
     timer:send_after(?CHECK_STATUS_INTERVAL,check_status),
     {noreply, State};
 
